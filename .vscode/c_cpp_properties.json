@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/ubuntu/robot_ws/install/realsense2_camera_msgs/include/**",
+        "/home/ubuntu/robot_ws/install/real_lidarbot/include/**",
+        "/opt/ros/foxy/include/**",
+        "/home/ubuntu/robot_ws/src/diff_drive_pca9685/include/**",
+        "/home/ubuntu/robot_ws/src/real_lidarbot/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-arm64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
