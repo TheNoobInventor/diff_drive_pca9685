@@ -26,9 +26,9 @@ int main(void)
 
     // Exception handling:ctrl + c
     signal(SIGINT, handler);
-    while(1) {
 
-    }
+    // Keeps program running for the next interrupt
+    while(1) {}
 
     //3.System Exit
     DEV_ModuleExit();

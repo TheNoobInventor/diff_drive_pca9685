@@ -16,14 +16,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-# find_package(ament_cmake REQUIRED)
-# find_package(controller_interface REQUIRED)
-# find_package(hardware_interface REQUIRED)
-# find_package(pluginlib REQUIRED)
-# find_package(rclcpp REQUIRED)
-# find_package(rclcpp_lifecycle REQUIRED)
+find_package(ament_cmake REQUIRED)
+find_package(controller_interface REQUIRED)
+find_package(hardware_interface REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+find_package(diff_drive_pca9685_interfaces REQUIRED)
 
-#
 # add_library(diff_drive_pca9685 SHARED src/diff_drive_pca9685.cpp src/DEV_Config.c src/PCA9685.c src/MotorDriver src/main.c)
 
 # Include C/Cpp "include" directory
@@ -33,13 +34,17 @@ include_directories(include)
 add_executable(motor_test src/DEV_Config.c src/PCA9685.c src/MotorDriver.c src/motor_test.c)
 
 add_executable(encoder_test src/encoder_test.cpp)
-# ament_target_dependencies(cpp_executable rclcpp)
+
+add_executable(encoder_node src/encoder_node.cpp)
+ament_target_dependencies(encoder_node rclcpp std_msgs diff_drive_pca9685_interfaces)
+target_link_libraries(encoder_node ${colcon_LIBRARIES} wiringPi crypt rt)
 
 # Install Cpp executables
 # Use lines below as a guide
 install(TARGETS
   motor_test
   encoder_test
+  encoder_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -58,8 +63,6 @@ target_link_libraries(encoder_test wiringPi crypt rt)
 #   rclcpp
 #   rclcpp_lifecycle
 # )
-
-# Add msg stuff 
 
 # pluginlib_export_plugin_description_file(hardware_interface diff_drive_pca9685.xml)
 
@@ -84,4 +87,4 @@ target_link_libraries(encoder_test wiringPi crypt rt)
 #   ament_lint_auto_find_test_dependencies()
 # endif()
 
-# ament_package()
+ament_package()

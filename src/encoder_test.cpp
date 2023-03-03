@@ -29,7 +29,7 @@ void right_wheel_pulse(void){
 
 // Handles CTRL+C to shutdown the program 
 void handler(int sig){
-    exit(0);
+    exit(sig);
 }
 
 int main()
@@ -51,8 +51,8 @@ int main()
 
     // Initialize signal handler for Ctrl+C exception handling
     signal(SIGINT, handler);
-    
-    while(1) {
 
-    }
+    // Keeps program running for the next interrupt
+    while(1) {}
+
 }
