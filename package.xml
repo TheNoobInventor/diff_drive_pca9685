@@ -4,18 +4,16 @@
   <name>diff_drive_pca9685</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="eduobijoro@mailfence.com">ubuntu</maintainer>
+  <maintainer email="chineduam@tuta.io">Chinedu Amadi</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>controller_interface</depend>
   <depend>hardware_interface</depend>
+  <depend>controller_manager</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
   <depend>rclcpp_lifecycle</depend>
-  <depend>diff_drive_pca9685_interfaces</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

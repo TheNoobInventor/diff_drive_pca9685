@@ -30,6 +30,9 @@
 #define MOTORA       0
 #define MOTORB       1
 
+UWORD ain1_value, ain2_value; 
+UWORD bin1_value, bin2_value;
+
 typedef enum {
     FORWARD  = 1,
     BACKWARD  ,
@@ -38,5 +41,6 @@ typedef enum {
 void Motor_Init(void);
 void Motor_Run(UBYTE motor, DIR dir, UWORD speed);
 void Motor_Stop(UBYTE motor);
+UBYTE Motor_Direction(UBYTE motor);
 
 #endif
