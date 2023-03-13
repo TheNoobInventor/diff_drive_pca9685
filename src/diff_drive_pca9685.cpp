@@ -9,7 +9,9 @@ DiffDrivePCA9685::DiffDrivePCA9685()
 return_type DiffDrivePCA9685::configure(const hardware_interface::HardwareInfo & info)
 {
     if (configure_default(info) != return_type::OK)
+    {
         return return_type::ERROR;
+    }
 
     RCLCPP_INFO(logger, "Configuring...");
 

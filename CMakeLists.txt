@@ -30,19 +30,16 @@ include_directories(include)
 
 # Create Cpp executable
 add_executable(motor_encoder src/DEV_Config.c src/PCA9685.c src/MotorDriver.c src/motor_encoder.c)
-# add_executable(motor_test src/DEV_Config.c src/PCA9685.c src/MotorDriver.c src/motor_encoder.c src/motor_test.cpp)
 
 # Install Cpp executables
 # Use lines below as a guide
 install(TARGETS
   motor_encoder
-  # motor_test
   DESTINATION lib/${PROJECT_NAME}
 )
 
 # Added math, wiringPi and other libraries
 target_link_libraries(motor_encoder m wiringPi pthread crypt rt)
-# target_link_libraries(motor_test m wiringPi pthread crypt rt)
 
 target_include_directories(diff_drive_pca9685 PRIVATE include)
 
@@ -57,27 +54,22 @@ ament_target_dependencies(
 
 pluginlib_export_plugin_description_file(hardware_interface diff_drive_pca9685.xml)
 
-# install(
-#   DIRECTORY include
-#   DESTINATION share/${PROJECT_NAME} # Might need to change the destination
-# )
+install(
+  DIRECTORY include/
+  DESTINATION include/diff_drive_pca9685
+)
 
 install(
   TARGETS diff_drive_pca9685
   DESTINATION lib/${PROJECT_NAME}
 )
 
-ament_export_libraries(diff_drive_pca9685)
-
+# Sort out
 # if(BUILD_TESTING)
-#   find_package(ament_lint_auto REQUIRED)
-#   # the following line skips the linter which checks for copyrights
-#   # uncomment the line when a copyright and license is not present in all source files
-#   #set(ament_cmake_copyright_FOUND TRUE)
-#   # the following line skips cpplint (only works in a git repo)
-#   # uncomment the line when this package is not in a git repo
-#   #set(ament_cmake_cpplint_FOUND TRUE)
-#   ament_lint_auto_find_test_dependencies()
+#   find_package(ament_cmake_mock REQUIRED)
+#   find_package(hardware_interface REQUIRED)
 # endif()
+
+ament_export_libraries(diff_drive_pca9685)
 
 ament_package()

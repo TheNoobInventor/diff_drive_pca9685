@@ -1,5 +1,5 @@
 <library path="diff_drive_pca9685">
-    <class name="diff_drive_pca9685"
+    <class name="diff_drive_pca9685/DiffDrivePCA9685"
            type="DiffDrivePCA9685"
            base_class_type="hardware_interface::SystemInterface">
         <description>
