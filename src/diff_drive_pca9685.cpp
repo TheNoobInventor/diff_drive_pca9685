@@ -1,49 +1,45 @@
 #include "diff_drive_pca9685/diff_drive_pca9685.hpp"
 
-#include "hardware_interface/types/hardware_interface_type_values.hpp"
+namespace diff_drive_9685
+{
 
 DiffDrivePCA9685::DiffDrivePCA9685()
-    : logger(rclcpp::get_logger("DiffDrivePCA9685"))
+    : logger_(rclcpp::get_logger("DiffDrivePCA9685"))
 {}
 
-return_type DiffDrivePCA9685::configure(const hardware_interface::HardwareInfo & info)
+CallbackReturn DiffDrivePCA9685::on_init(const hardware_interface::HardwareInfo & info)
 {
-    if (configure_default(info) != return_type::OK)
+    if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
     {
-        return return_type::ERROR;
+        return CallbackReturn::ERROR;
     }
 
-    RCLCPP_INFO(logger, "Configuring...");
+    RCLCPP_INFO(logger_, "Initializing...");
 
-    time = std::chrono::system_clock::now();
+    config_.left_wheel_name = info_.hardware_parameters["left_wheel_name"];
+    config_.right_wheel_name = info_.hardware_parameters["right_wheel_name"];
+    config_.enc_ticks_per_rev = std::stoi(info_.hardware_parameters["enc_ticks_per_rev"]);
+    config_.loop_rate = std::stod(info_.hardware_parameters["loop_rate"]);
 
-    config.left_wheel_name = info_.hardware_parameters["left_wheel_name"];
-    config.right_wheel_name = info_.hardware_parameters["right_wheel_name"];
-    config.loop_rate = std::stof(info_.hardware_parameters["loop_rate"]);
-    config.enc_ticks_per_rev = std::stoi(info_.hardware_parameters["enc_ticks_per_rev"]);
+    // Set up wheels
+    left_wheel_.setup(config_.left_wheel_name, config_.enc_ticks_per_rev);
+    right_wheel_.setup(config_.right_wheel_name, config_.enc_ticks_per_rev);
 
-    // Set up weheels
-    left_wheel.setup(config.left_wheel_name, config.enc_ticks_per_rev);
-    right_wheel.setup(config.right_wheel_name, config.enc_ticks_per_rev);
+    RCLCPP_INFO(logger_, "Finished initialization");
 
-    // MOTOR ENCODER SETUP?? //
-
-    RCLCPP_INFO(logger, "Finished configuration");
-
-    status_ = hardware_interface::status::CONFIGURED;
-    return return_type::OK;
+    return CallbackReturn::SUCCESS;
 }
 
 std::vector<hardware_interface::StateInterface> DiffDrivePCA9685::export_state_interfaces()
 {
-    // Set up a position and a velocity interface for each wheel
+    // Set up a position and velocity interface for each wheel
 
     std::vector<hardware_interface::StateInterface> state_interfaces;
 
-    state_interfaces.emplace_back(hardware_interface::StateInterface(left_wheel.name, hardware_interface::HW_IF_VELOCITY, &left_wheel.velocity));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(left_wheel.name, hardware_interface::HW_IF_POSITION, &left_wheel.position));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(right_wheel.name, hardware_interface::HW_IF_VELOCITY, &right_wheel.velocity));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(right_wheel.name, hardware_interface::HW_IF_POSITION, &right_wheel.position));
+    state_interfaces.emplace_back(hardware_interface::StateInterface(left_wheel_.name, hardware_interface::HW_IF_VELOCITY, &left_wheel_.velocity));
+    state_interfaces.emplace_back(hardware_interface::StateInterface(left_wheel_.name, hardware_interface::HW_IF_POSITION, &left_wheel_.position));
+    state_interfaces.emplace_back(hardware_interface::StateInterface(right_wheel_.name, hardware_interface::HW_IF_VELOCITY, &right_wheel_.velocity));
+    state_interfaces.emplace_back(hardware_interface::StateInterface(right_wheel_.name, hardware_interface::HW_IF_POSITION, &right_wheel_.position));
 
     return state_interfaces;
 }
@@ -54,79 +50,88 @@ std::vector<hardware_interface::CommandInterface> DiffDrivePCA9685::export_comma
 
     std::vector<hardware_interface::CommandInterface> command_interfaces;
 
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(left_wheel.name, hardware_interface::HW_IF_VELOCITY, &left_wheel.command));
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(right_wheel.name, hardware_interface::HW_IF_VELOCITY, &right_wheel.command));
+    command_interfaces.emplace_back(hardware_interface::CommandInterface(left_wheel_.name, hardware_interface::HW_IF_VELOCITY, &left_wheel_.command));
+    command_interfaces.emplace_back(hardware_interface::CommandInterface(right_wheel_.name, hardware_interface::HW_IF_VELOCITY, &right_wheel_.command));
 
     return command_interfaces;
 }
 
-return_type DiffDrivePCA9685::start()
+CallbackReturn DiffDrivePCA9685::on_configure(const rclcpp_lifecycle::State & /*previous_state*/)
 {
-    RCLCPP_INFO(logger, "Starting Controller...");
+    RCLCPP_INFO(logger_, "Configuring motors and encoders...");
+
+    // Initialize motor driver
+    Motor_Init();
+
+    // Initialize wiringPi using GPIO BCM pin numbers
+    wiringPiSetupGpio();
     
-    //
-    //
-    // PID VALUES?
+    // Setup GPIO encoder pins
+    pinMode(LEFT_WHL_ENCODER, INPUT);
+    pinMode(RIGHT_WHL_ENCODER, INPUT);
 
-    status_ = hardware_interface::status::STARTED;
+    // Setup pull up resistors on encoder pins
+    pullUpDnControl(LEFT_WHL_ENCODER, PUD_UP);
+    pullUpDnControl(RIGHT_WHL_ENCODER, PUD_UP);
 
-    return return_type::OK;
+    // Initialize encoder interrupts for falling signal states
+    wiringPiISR(LEFT_WHL_ENCODER, INT_EDGE_FALLING, left_wheel_pulse);
+    wiringPiISR(RIGHT_WHL_ENCODER, INT_EDGE_FALLING, right_wheel_pulse);
 
+    RCLCPP_INFO(logger_, "Successfully configured motors and encoders!");
+
+    return CallbackReturn::SUCCESS;
 }
 
-return_type DiffDrivePCA9685::stop()
+CallbackReturn DiffDrivePCA9685::on_activate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
-    RCLCPP_INFO(logger, "Stopping Controller...");
-    status_ = hardware_interface::status::STOPPED;
+    RCLCPP_INFO(logger_, "Starting controller ...");
 
-    return return_type::OK;
+    return CallbackReturn::SUCCESS;
 }
 
-return_type DiffDrivePCA9685::read()
-{
-    // Calculate delta time
-    auto new_time = std::chrono::system_clock::now();
-    std::chrono::duration<double> diff = new_time - time;
-    double delta_time = diff.count();
-    time = new_time;
+CallbackReturn DiffDrivePCA9685::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
+{   
+    RCLCPP_INFO(logger_, "Stopping Controller...");
 
-    //
-    read_encoder_values(left_wheel.encoder_ticks, right_wheel.encoder_ticks);
+    return CallbackReturn::SUCCESS;
+}
+
+return_type DiffDrivePCA9685::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
+{
+    // Obtain elapsed time
+    double delta_seconds = period.seconds();
+
+    // Obtain encoder values
+    read_encoder_values(&left_wheel_.encoder_ticks, &right_wheel_.encoder_ticks);
 
     // Calculate wheel positions and velocities
-    double prev_position = left_wheel.position;
-    left_wheel.position = left_wheel.calculate_encoder_angle();
-    left_wheel.velocity = (left_wheel.position - prev_position) / delta_time;
+    double previous_position = left_wheel_.position;
+    left_wheel_.position = left_wheel_.calculate_encoder_angle();
+    left_wheel_.velocity = (left_wheel_.position - previous_position) / delta_seconds;
 
-    prev_position = right_wheel.position;
-    right_wheel.position = right_wheel.calculate_encoder_angle();
-    right_wheel.velocity = (right_wheel.position - prev_position) / delta_time;
-
-    return return_type::OK;
-}
-
-return_type DiffDrivePCA9685::write()
-{
-
-    // Testing
-    Motor_Run(MOTORA, FORWARD, 50);
-    Motor_Run(MOTORB, BACKWARD, 50);
-    delay(5000);
-    // this_thread::sleep_for(std::chrono::milliseconds(5000));
-    Motor_Stop(MOTORA);
-    Motor_Stop(MOTORB);
-
-    // Closed loop control incorporating loop rate
+    previous_position = right_wheel_.position;
+    right_wheel_.position = right_wheel_.calculate_encoder_angle();
+    right_wheel_.velocity = (right_wheel_.position - previous_position) / delta_seconds;
 
     return return_type::OK;
 }
 
-// Should we initialize wiring library and motor driver here? 
-// How do we ensure that the motor_encoder main loop is running to drive the motors?
+return_type DiffDrivePCA9685::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
+{   
+    double left_motor_counts_per_loop = left_wheel_.command / left_wheel_.rads_per_tick / config_.loop_rate;
+    double right_motor_counts_per_loop = right_wheel_.command / right_wheel_.rads_per_tick / config_.loop_rate;
+
+    // Send commands to motor driver
+    set_motor_speeds(left_motor_counts_per_loop, right_motor_counts_per_loop);
+
+    return return_type::OK;
+}
+
+} // namespace diff_drive_pca9685
 
 #include "pluginlib/class_list_macros.hpp"
 
 PLUGINLIB_EXPORT_CLASS(
-    DiffDrivePCA9685,
-    hardware_interface::SystemInterface
-)
+    diff_drive_pca9685::DiffDrivePCA9685,
+    hardware_interface::SystemInterface)

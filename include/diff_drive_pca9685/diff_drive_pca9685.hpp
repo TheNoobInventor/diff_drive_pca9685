@@ -1,54 +1,71 @@
 #ifndef _DIFF_DRIVE_PCA9685_H_
 #define _DIFF_DRIVE_PCA9685_H_
 
-#include <string>
-#include <thread> // for motor start and stop test
-// #include <dos.h> // for motor start and stop tests
+#include <cmath>
+#include <memory>
+#include <cstring>
+#include <thread>
+#include <vector>
 
-#include "rclcpp/rclcpp.hpp"
-
-#include "hardware_interface/base_interface.hpp"
-#include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
+#include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
-#include "hardware_interface/types/hardware_interface_status_values.hpp"
+#include "hardware_interface/types/hardware_interface_type_values.hpp"
+
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp"
+#include "rclcpp_lifecycle/state.hpp"
 
 #include "motor_encoder.h"
-#include "config.hpp"
 #include "wheel.hpp"
-#include "diff_drive_pca9685.hpp"
 
 using hardware_interface::return_type;
+using hardware_interface::CallbackReturn;
 
-class DiffDrivePCA9685 : public hardware_interface::BaseInterface<hardware_interface::SystemInterface>
+namespace diff_drive_pca9685
 {
+
+class DiffDrivePCA9685 : public hardware_interface::SystemInterface
+{
+  
+  struct Config
+  {
+    std::string left_wheel_name = "left_wheel";
+    std::string right_wheel_name = "right_wheel";
+    int enc_ticks_per_rev = 20;
+    double loop_rate = 30.0;
+  };
+
   public:
     DiffDrivePCA9685();
 
-    return_type configure(const hardware_interface::HardwareInfo & info) override;
+    CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
 
     std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
     std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
-    return_type start() override;
+    CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
 
-    return_type stop() override;
+    CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
-    return_type read() override;
+    CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
 
-    return_type write() override;
+    return_type read(const rclcpp::Time & time, const rclcpp::Duration & period) override;
+
+    return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
   private:
-    Config config;
+    Config config_;
 
-    Wheel left_wheel;
-    Wheel right_wheel;
+    Wheel left_wheel_;
+    Wheel right_wheel_;
 
-    rclcpp::Logger logger;
+    rclcpp::Logger logger_;
 
-    std::chrono::time_point<std::chrono::system_clock> time;
 };
+
+} // namespace diff_drive_pca9685
 
 #endif

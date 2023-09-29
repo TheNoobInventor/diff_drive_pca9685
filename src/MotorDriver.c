@@ -16,6 +16,9 @@
 #include "diff_drive_pca9685/MotorDriver.h"
 #include "diff_drive_pca9685/Debug.h"
 
+UWORD ain1_value, ain2_value; 
+UWORD bin1_value, bin2_value;
+
 /**
  * Motor rotation.
  *
@@ -25,7 +28,7 @@
 void Motor_Init(void)
 {
     PCA9685_Init(0x40);
-    PCA9685_SetPWMFreq(100);
+    PCA9685_SetPWMFreq(50);
 }
 
 /**

@@ -8,14 +8,18 @@ extern "C" {
 #include <stdio.h>      //printf()
 #include <stdlib.h>     //exit()
 #include <signal.h>
+#include <wiringPi.h>
 
-#include <time.h>
-#include "DEV_Config.h"
 #include "MotorDriver.h"
 
-void set_motor_speeds();
-void read_encoder_values(int left_encoder_value, int right_encoder_value);
-void calculate_encoder_angle();
+#define LEFT_WHL_ENCODER 25
+#define RIGHT_WHL_ENCODER 24
+
+void handler(int signo);
+void left_wheel_pulse();
+void right_wheel_pulse();
+void set_motor_speeds(double left_wheel_command, double right_wheel_command);
+void read_encoder_values(int *left_encoder_value, int *right_encoder_value);
 
 #endif 
 

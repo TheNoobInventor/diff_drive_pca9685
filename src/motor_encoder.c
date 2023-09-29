@@ -1,21 +1,16 @@
 #include "diff_drive_pca9685/motor_encoder.h"
-#include <wiringPi.h>
-
-#define LEFT_WHL_ENCODER 25
-#define RIGHT_WHL_ENCODER 24
+#include <math.h>
 
 // Initialize pulse counters
 int left_wheel_pulse_count = 0;
 int right_wheel_pulse_count = 0;
 
-void read_encoder_values(int left_encoder_value, int right_encoder_value)
+// Read wheel encoder values
+void read_encoder_values(int *left_encoder_value, int *right_encoder_value)
 {
-    left_encoder_value = left_wheel_pulse_count;
-    right_encoder_value = right_wheel_pulse_count;
+    *left_encoder_value = left_wheel_pulse_count;
+    *right_encoder_value = right_wheel_pulse_count;
 }
-
-void set_motor_speeds()
-{}
 
 // Left wheel callback function
 void left_wheel_pulse()
@@ -25,9 +20,8 @@ void left_wheel_pulse()
     // 0 - backward
     if(Motor_Direction(MOTORA) == 1)
         left_wheel_pulse_count++;
-    else if(Motor_Direction(MOTORA) == 0)
+    else 
         left_wheel_pulse_count--;
-    DEBUG("Left pulse: %d\n", left_wheel_pulse_count);
 }
 
 // Right wheel callback function
@@ -38,49 +32,45 @@ void right_wheel_pulse()
     // 0 - backward
     if(Motor_Direction(MOTORB) == 1)
         right_wheel_pulse_count++;
-    else if(Motor_Direction(MOTORB) == 0)
+    else 
         right_wheel_pulse_count--;
-    DEBUG("Right pulse: %d\n", right_wheel_pulse_count);
+}
+
+// Set each motor speed from the respective velocity command interface
+void set_motor_speeds(double left_wheel_command, double right_wheel_command)
+{   
+    // Initialize DIR enum variables 
+    DIR left_wheel_direction;
+    DIR right_wheel_direction;
+
+    // Convert wheel commands to percentage values
+    double left_motor_speed = ceil(left_wheel_command * 100.0);
+    double right_motor_speed = ceil(right_wheel_command * 100.0);
+
+    // Clip speeds to +/- 50%
+    left_motor_speed = fmax(fmin(left_motor_speed, 50.0), -50.0);
+    right_motor_speed = fmax(fmin(right_motor_speed, 50.0), -50.0);
+    
+    // Set motor directions
+    if(left_motor_speed > 0) 
+        left_wheel_direction = FORWARD;
+    else
+        left_wheel_direction = BACKWARD;
+
+    if(right_motor_speed > 0)
+        right_wheel_direction = FORWARD;
+    else
+        right_wheel_direction = BACKWARD;
+
+    // Run motors with specified direction and speeds
+    Motor_Run(MOTORA, left_wheel_direction, (int) abs(left_motor_speed));
+    Motor_Run(MOTORB, right_wheel_direction, (int) abs(right_motor_speed));
 }
 
 void handler(int signo)
 {
-    DEBUG("\r\nHandler:Motor Stop\r\n");
     Motor_Stop(MOTORA);
     Motor_Stop(MOTORB);
 
     exit(0);
-}
-
-int main()
-{
-    // Motor Initialization
-    Motor_Init();
-
-    // Initialize wiringPi using GPIO BCM pin numbers
-    wiringPiSetupGpio();
-    
-    // Setup GPIO encoder pins
-    pinMode(LEFT_WHL_ENCODER, INPUT);
-    pinMode(RIGHT_WHL_ENCODER, INPUT);
-
-    // Setup pull up resistors on encoder pins
-    pullUpDnControl(LEFT_WHL_ENCODER, PUD_UP);
-    pullUpDnControl(RIGHT_WHL_ENCODER, PUD_UP);
-
-    // Initialize encoder interrupts for falling signal states
-    wiringPiISR(LEFT_WHL_ENCODER, INT_EDGE_FALLING, left_wheel_pulse);
-    wiringPiISR(RIGHT_WHL_ENCODER, INT_EDGE_FALLING, right_wheel_pulse);
-
-    DEBUG("Motor_Run\r\n");
-    // Motor_Run(MOTORA, FORWARD, 50);
-    // Motor_Run(MOTORB, BACKWARD, 50);
-
-    // Initialize signal handler for Ctrl+C exception handling
-    signal(SIGINT, handler);
-
-    // Keeps program running for the next interrupt
-    while(1) {}
-
-    return 0;
 }

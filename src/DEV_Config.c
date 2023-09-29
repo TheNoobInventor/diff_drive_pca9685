@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-
 uint32_t fd;
 int INT_PIN;
 /******************************************************************************
@@ -156,8 +155,8 @@ void GPIO_Config(void)
         INT_PIN = GPIO4;
         #endif
     }else{
-        // printf("Device read failed or unrecognized!!!\r\n");
-        // while(1);
+        printf("Device read failed or unrecognized!!!\r\n");
+        while(1);
     }
     
     DEV_GPIO_Mode(INT_PIN, 0);
